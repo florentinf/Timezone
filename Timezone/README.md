@@ -7,7 +7,7 @@ A minimalistic Discord bot that displays a user's current time based on their se
 - **Commands**:
   - `,tz`: Shows the user's current time in a minimalistic embed
   - `,tz @user`: Shows the mentioned user's current time (if their timezone is set)
-  - `,settz [timezone]`: Sets the user's timezone (e.g., `America/New_York`, `Europe/London`)
+  - `,settz [timezone]`: Sets the user's timezone using flexible format recognition
   
 - **Dynamic Embed Colors**:
   - Morning (6 AM–12 PM): Pastel yellow
@@ -102,14 +102,29 @@ The bot needs the following permissions to function properly:
 
 ## Timezone Format
 
-The bot uses the IANA timezone database format. Common examples:
-- `America/New_York`
-- `Europe/London`
-- `Asia/Tokyo`
-- `Australia/Sydney`
-- `Pacific/Auckland`
+The bot supports a wide range of timezone formats:
 
-You can find a full list of valid timezones by running `pytz.all_timezones` in Python.
+1. **IANA Timezone Names**:
+   - `America/New_York`
+   - `Europe/London`
+   - `Asia/Tokyo`
+
+2. **Common Abbreviations**:
+   - `EST`, `PST`, `CEST`, `JST`, etc.
+
+3. **UTC/GMT Offsets**:
+   - `UTC+2`, `GMT-5`, `UTC+10:30`
+
+4. **City Names**:
+   - `New York`, `London`, `Tokyo`, `Sydney`
+
+5. **Country Names**:
+   - `USA`, `Japan`, `Australia`, `Germany`
+
+6. **Natural Language**:
+   - `Eastern Time`, `Pacific`, `Central Europe`
+
+The bot will try to intelligently match your input to the correct timezone, even with typos or partial matches.
 
 ## Troubleshooting
 

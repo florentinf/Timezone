@@ -6,6 +6,7 @@ import pytz
 from datetime import datetime
 from dotenv import load_dotenv
 import asyncio
+from src.utils.timezone_parser import parse_timezone, get_current_time, list_timezone_examples
 
 # Load environment variables
 load_dotenv()
@@ -57,13 +58,10 @@ def get_color_by_time(dt):
     else:
         return COLORS['night']
 
-# Validate timezone
+# Validate timezone (using our enhanced parser)
 def is_valid_timezone(tz_str):
-    try:
-        pytz.timezone(tz_str)
-        return True
-    except pytz.exceptions.UnknownTimeZoneError:
-        return False
+    timezone_id, _, _ = parse_timezone(tz_str)
+    return timezone_id is not None
 
 @bot.event
 async def on_ready():
@@ -86,38 +84,49 @@ async def timezone(ctx, member: discord.Member = None):
     
     # Check if user has set timezone
     if user_id not in timezones[server_id]:
+        examples = list_timezone_examples()
         msg = await ctx.send(f"{target_user.mention} hasn't set a timezone. "
-                            f"Please set it with `,settz [timezone]`.")
+                            f"Please set it with `,settz [timezone]`.\n"
+                            f"Examples: {examples}")
         await asyncio.sleep(20)
         await msg.delete()
         return
     
     # Get user's timezone and current time
     timezone_str = timezones[server_id][user_id]
-    tz = pytz.timezone(timezone_str)
-    current_time = datetime.now(tz)
-    formatted_time = current_time.strftime('%I:%M %p, %A, %b %d')
-    
-    # Create embed with color based on time of day
-    embed = discord.Embed(
-        title=f"Current time for {target_user.display_name}",
-        description=f"{formatted_time} ({timezone_str})",
-        color=get_color_by_time(current_time)
-    )
-    
-    await ctx.send(embed=embed)
+    try:
+        tz = pytz.timezone(timezone_str)
+        current_time = datetime.now(tz)
+        formatted_time = current_time.strftime('%I:%M %p, %A, %b %d')
+        
+        # Create embed with color based on time of day
+        embed = discord.Embed(
+            title=f"Current time for {target_user.display_name}",
+            description=f"{formatted_time} ({timezone_str})",
+            color=get_color_by_time(current_time)
+        )
+        
+        await ctx.send(embed=embed)
+    except Exception as e:
+        msg = await ctx.send(f"Error displaying timezone for {target_user.mention}: {str(e)}")
+        await asyncio.sleep(20)
+        await msg.delete()
 
 @bot.command(name='settz')
-async def set_timezone(ctx, timezone_str: str = None):
+async def set_timezone(ctx, *, timezone_str: str = None):
     if not timezone_str:
-        msg = await ctx.send("Please provide a timezone (e.g., `America/New_York`, `Europe/London`).")
+        examples = list_timezone_examples()
+        msg = await ctx.send(f"Please provide a timezone. Examples: {examples}")
         await asyncio.sleep(20)
         await msg.delete()
         return
     
-    # Validate timezone
-    if not is_valid_timezone(timezone_str):
-        msg = await ctx.send(f"Invalid timezone. Use a valid timezone like `America/New_York`.")
+    # Process and validate timezone using enhanced parser
+    timezone_id, message, exact = parse_timezone(timezone_str)
+    
+    if not timezone_id:
+        examples = list_timezone_examples()
+        msg = await ctx.send(f"{message}\nExamples: {examples}")
         await asyncio.sleep(20)
         await msg.delete()
         return
@@ -132,16 +141,23 @@ async def set_timezone(ctx, timezone_str: str = None):
         timezones[server_id] = {}
     
     # Set timezone
-    timezones[server_id][user_id] = timezone_str
+    timezones[server_id][user_id] = timezone_id
     save_timezone_data(timezones)
     
-    # Confirmation message
-    msg = await ctx.send(f"Timezone set to {timezone_str}.")
+    # Confirmation message with additional info if timezone was guessed
+    confirmation = f"Timezone set to {timezone_id}."
+    if message:
+        confirmation += f" {message}"
+    
+    msg = await ctx.send(confirmation)
     await asyncio.sleep(10)
     await msg.delete()
 
 def main():
-    bot.run(TOKEN)
+    try:
+        bot.run(TOKEN)
+    except Exception as e:
+        print(f"Error starting bot: {e}")
 
 if __name__ == "__main__":
     main()
