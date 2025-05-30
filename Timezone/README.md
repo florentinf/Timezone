@@ -9,6 +9,13 @@ A minimalistic Discord bot that displays a user's current time based on their se
   - `,tz @user`: Shows the mentioned user's current time (if their timezone is set)
   - `,settz [timezone]`: Sets the user's timezone using flexible format recognition
   
+- **Server Management** (bot owner only):
+  - `,servers`: Lists all servers the bot is in
+  - `,leaveserver [server_id]`: Leaves a specific server
+  - `,banserver [server_id]`: Bans and leaves a server
+  - `,unbanserver [server_id]`: Unbans a server
+  - `,bannedservers`: Lists all banned servers
+  
 - **Dynamic Embed Colors**:
   - Morning (6 AM–12 PM): Pastel yellow
   - Afternoon (12 PM–6 PM): Pastel blue
@@ -43,7 +50,7 @@ A minimalistic Discord bot that displays a user's current time based on their se
    ```
    cp .env.example .env
    ```
-   Edit the `.env` file and add your Discord bot token.
+   Edit the `.env` file and add your Discord bot token and your Discord user ID (for owner commands).
 
 4. Run the bot:
    ```
@@ -124,7 +131,7 @@ The bot supports a wide range of timezone formats:
 6. **Natural Language**:
    - `Eastern Time`, `Pacific`, `Central Europe`
 
-The bot will try to intelligently match your input to the correct timezone, even with typos or partial matches.
+The bot will try to intelligently match your input to the correct timezone, even with typos or partial matches. The bot supports UTC offsets like `UTC+1` or `GMT-5` as well as general timezone names.
 
 ## Troubleshooting
 

@@ -274,24 +274,25 @@ def parse_timezone(timezone_str: str) -> Tuple[Optional[str], Optional[str], boo
         return TIMEZONE_EXPRESSIONS[input_str], None, True
     
     # Parse UTC/GMT offset
-    utc_pattern = re.compile(r'^(utc|gmt)?\s*([+-])?\s*(\d{1,2})(?::(\d{2}))?$', re.IGNORECASE)
+    # More comprehensive pattern that handles formats like "UTC+1", "UTC +1", "utc+01:00", etc.
+    utc_pattern = re.compile(r'^(utc|gmt)?\s*([+-])\s*(\d{1,2})(?::(\d{2}))?$', re.IGNORECASE)
     match = utc_pattern.match(input_str)
     
     if match:
-        sign = match.group(2) or '+'
+        sign = match.group(2)
         hours = int(match.group(3))
         minutes = int(match.group(4)) if match.group(4) else 0
         
         if hours > 14 or (hours == 14 and minutes > 0) or (sign == '+' and hours == 0 and minutes == 0):
             return None, f"Invalid UTC offset: {timezone_str}. UTC offsets must be between -14:00 and +14:00.", False
         
+        # Apply the sign
         if sign == '-':
             hours = -hours
             minutes = -minutes
         
         offset = timedelta(hours=hours, minutes=minutes)
         now = datetime.now(pytz.UTC)
-        target_time = now + offset
         
         # Find a timezone with the same offset at the current time
         for tz_name in pytz.all_timezones:
@@ -314,6 +315,15 @@ def parse_timezone(timezone_str: str) -> Tuple[Optional[str], Optional[str], boo
             # If we have minutes, we'll return UTC but with an explanation
             formatted_offset = f"{sign}{abs(hours):02d}:{abs(minutes):02d}"
             return f"UTC", f"Using UTC with offset {formatted_offset}", True
+    
+    # Special handling for common "UTC+X" formats that might not be properly matched
+    utc_special_pattern = re.compile(r'^(utc|gmt)\s*\+\s*(\d{1,2})$', re.IGNORECASE)
+    utc_special_match = utc_special_pattern.match(input_str)
+    if utc_special_match:
+        hours = int(utc_special_match.group(2))
+        if hours <= 14:
+            inv_sign = '-'  # Etc/GMT format uses opposite sign
+            return f"Etc/GMT{inv_sign}{abs(hours)}", None, True
     
     # Try to find closest match in cities
     city_matches = get_close_matches(input_str, list(CITY_TIMEZONES.keys()), n=1, cutoff=0.8)
